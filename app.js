@@ -62,6 +62,14 @@ function memoryList() {
   return "Память:\n" + data.entries.slice(-12).map((e) => `· ${e.text}`).join("\n");
 }
 
+// \b в JS не работает с кириллицей, поэтому слова ищем сами.
+function hit(low, words) {
+  const padded = " " + low.replace(/[^a-zа-я0-9]+/g, " ") + " ";
+  return words.some((w) => (w.endsWith("*")
+    ? padded.includes(" " + w.slice(0, -1))
+    : padded.includes(" " + w + " ")));
+}
+
 function brain(userText) {
   const t = (userText || "").trim();
   const low = t.toLowerCase().replace(/ё/g, "е");
@@ -69,27 +77,27 @@ function brain(userText) {
   if (t.startsWith("/remember ") || t.startsWith("/запомни ")) {
     return remember(t.split(/\s+/).slice(1).join(" "));
   }
-  if (t === "/memory" || t === "/память" || /\b(память|что знаешь|профиль)\b/.test(low)) {
+  if (t === "/memory" || t === "/память" || hit(low, ["память", "что знаешь", "профиль"])) {
     return memoryList();
   }
-  if (/\b(привет|здравств|добрый|hello|hi)\b/.test(low)) {
+  if (hit(low, ["привет*", "здравств*", "добрый", "доброе", "hello", "hi", "hallo"])) {
     const h = new Date().getHours();
     const g = h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер";
     return `${g}, Дима. Сайло на связи — жми сферу.`;
   }
-  if (/\b(алфавит|буквы|alphabet)\b/.test(low)) {
+  if (hit(low, ["алфавит*", "буквы", "alphabet"])) {
     return `Полный русский алфавит (33 буквы, включая Ё): ${RU_ALPHABET}.`;
   }
-  if (/\b(кто ты|как тебя зовут|представься)\b/.test(low)) {
+  if (hit(low, ["кто ты", "как тебя зовут", "представься"])) {
     return "Я Сайло — твой голосовой ассистент. Не Джарвис. Сфера → голос → ответ.";
   }
-  if (/\b(время|который час)\b/.test(low)) {
+  if (hit(low, ["время", "который час", "сколько времени"])) {
     return `Сейчас ${new Date().toLocaleString("ru-RU")}.`;
   }
-  if (/\b(помощь|команды|help)\b/.test(low)) {
+  if (hit(low, ["помощь", "команды", "help"])) {
     return "Сфера = СЛУШАТЬ. Команды: алфавит, время, /remember …, /memory. Память в этом Safari (localStorage).";
   }
-  if (/\b(позвонил|звонил|called)\b/.test(low)) {
+  if (hit(low, ["позвонил*", "звонил*", "called"])) {
     remember(`Дима сказал: ${t}`);
     return `Запомнил: «${t}». Это останется после перезапуска Safari на этом iPhone.`;
   }
