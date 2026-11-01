@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base href="/jarvis-os1/" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Сайло" />
+  <meta name="theme-color" content="#00e5ff" />
+  <meta name="description" content="Сайло — Jarvis OS1. Голосовой ассистент." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+  <link rel="icon" href="assets/icon-192.png" type="image/png" />
+  <title>Сайло</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="splash" class="splash">
+    <div class="splash-mark">SILO</div>
+    <div class="splash-sub">STARK INDUSTRIES · OS1</div>
+    <div class="splash-bar"><span></span></div>
+  </div>
+
+  <div class="grid" aria-hidden="true"></div>
+  <div class="aurora" aria-hidden="true"></div>
+
+  <header class="top">
+    <h1 class="brand">САЙЛО</h1>
+    <span class="badge" id="badge">PWA</span>
+  </header>
+
+  <main class="hero">
+    <button type="button" id="core" class="core" title="Слушать" aria-label="Нажми чтобы говорить">
+      <span class="ring ring-a" aria-hidden="true"></span>
+      <span class="ring ring-b" aria-hidden="true"></span>
+      <span class="orbit" aria-hidden="true"></span>
+      <img src="assets/jarvis-sphere.gif" alt="Сайло — анимированная сфера" width="500" height="500" draggable="false" />
+      <span class="label" id="label">СЛУШАТЬ</span>
+    </button>
+    <p class="sub">Нажми сферу и говори · полный русский алфавит</p>
+    <div class="alphabet" id="alphabet" aria-label="Русский алфавит"></div>
+  </main>
+
+  <section class="panel">
+    <div id="log" class="log" aria-live="polite"></div>
+    <form id="form" class="composer">
+      <input id="input" autocomplete="off" placeholder="Или напиши… /remember …" enterkeyhint="send" />
+      <button type="submit">Отправить</button>
+    </form>
+  </section>
+
+  <footer class="foot">
+    <span id="footHint">Сайло · офлайн PWA · память в браузере</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
