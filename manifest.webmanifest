@@ -2,7 +2,7 @@
   "name": "Сайло",
   "short_name": "Сайло",
   "description": "Jarvis OS1 — голосовой ассистент Сайло",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
