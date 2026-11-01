@@ -71,5 +71,7 @@
     }
   }
 
-  return { classify, solveMath };
+  const REPLY_LENGTH = "long";
+
+  return { classify, solveMath, REPLY_LENGTH };
 });

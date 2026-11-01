@@ -21,7 +21,9 @@ test("localhost bridge runs a file order and serves the page", async () => {
       body: JSON.stringify({ text: "создай файл note.txt текст проверка" }),
     });
     const body = await created.json();
-    assert.equal(body.say, "Записал.");
+    assert.match(body.say, /записал/i);
+    assert.match(body.say, /проверка/);
+    assert.equal(body.say, body.text);
     assert.equal(fs.readFileSync(path.join(root, "note.txt"), "utf8"), "проверка");
   } finally {
     await new Promise((resolve) => server.close(resolve));
