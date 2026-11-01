@@ -103,8 +103,8 @@ function brain(userText) {
   }
   if (mentions(low, "помощь|команды|help")) {
     return reply(
-      "Сфера — слушать. Повторное нажатие останавливает. Команды: время, алфавит, /remember, /memory.",
-      "Нажмите сферу, чтобы говорить. Повторное нажатие останавливает. Могу назвать время, алфавит и открыть память."
+      "Сфера — слушать. Повторное нажатие останавливает. Здесь: время, алфавит, /remember, /memory. Через локальный мост: выполни …, прочитай файл …, создай файл …, найди …",
+      "Нажмите сферу, чтобы говорить. Могу назвать время и открыть память. Файлы, команды и поиск — через локальный мост."
     );
   }
   if (mentions(low, "позвонил|звонил|called")) {
@@ -167,13 +167,47 @@ function say(text, spoken) {
   speak(spoken || text);
 }
 
-function send(text) {
+async function askAgent(text) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(new URL("agent", document.baseURI), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    if (!response.ok || !data || !data.say) throw new Error("agent");
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function send(text) {
   const cleaned = (text || "").trim();
   if (!cleaned) return;
   bubble("ВЫ", cleaned);
   input.value = "";
-  const answer = brain(cleaned);
-  say(answer.text, answer.say);
+  const order = window.SiloIntent ? window.SiloIntent.classify(cleaned) : { kind: "local" };
+  if (order.kind === "local") {
+    const answer = brain(cleaned);
+    say(answer.text, answer.say);
+    return;
+  }
+  if (order.kind === "math") {
+    const value = window.SiloIntent.solveMath(order.expression);
+    if (value == null) say("Не смог посчитать.", "Не смог посчитать.");
+    else say("Получается " + value + ".", "Получается " + value + ".");
+    return;
+  }
+  try {
+    const data = await askAgent(cleaned);
+    say(data.text || data.say, data.say);
+  } catch {
+    say("Агент не запущен. Нужен локальный мост.", "Агент не запущен.");
+  }
 }
 
 form.addEventListener("submit", (e) => {
