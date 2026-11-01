@@ -141,6 +141,7 @@ form.addEventListener("submit", (e) => {
 });
 
 let recognizing = false;
+let currentRec = null;
 core.addEventListener("click", () => {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Rec) {
@@ -148,11 +149,16 @@ core.addEventListener("click", () => {
     input.focus();
     return;
   }
-  if (recognizing) return;
+  if (recognizing) {
+    // Повторное нажатие на сферу останавливает прослушивание.
+    try { currentRec && currentRec.stop(); } catch {}
+    return;
+  }
   if (!window.isSecureContext) {
     bubble(WHO, "Нужен HTTPS (GitHub Pages) для микрофона.");
   }
   const r = new Rec();
+  currentRec = r;
   r.lang = "ru-RU";
   r.interimResults = false;
   r.onstart = () => { recognizing = true; setHot(true); };
@@ -160,8 +166,14 @@ core.addEventListener("click", () => {
   r.onerror = (ev) => {
     recognizing = false;
     setHot(false);
-    if (ev.error === "not-allowed") {
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
       bubble(WHO, "Разреши микрофон в Safari (аА → Настройки сайта).");
+    } else if (ev.error === "no-speech") {
+      bubble(WHO, "Я ничего не услышал. Нажми сферу и скажи ещё раз.");
+    } else if (ev.error === "network") {
+      bubble(WHO, "Нет связи для распознавания речи. Проверь интернет или напиши в поле.");
+    } else if (ev.error !== "aborted") {
+      bubble(WHO, "Не получилось распознать речь. Попробуй ещё раз или напиши в поле.");
     }
   };
   r.onresult = (ev) => {
