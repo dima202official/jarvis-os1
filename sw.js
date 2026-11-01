@@ -1,4 +1,4 @@
-const CACHE = "silo-pages-v2";
+const CACHE = "silo-pages-v3";
 const ASSETS = [
   "./",
   "./index.html",

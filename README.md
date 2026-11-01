@@ -5,5 +5,5 @@ https://dima202official.github.io/jarvis-os1/
 
 Safari → Поделиться → На экран «Домой».
 
-Сфера = **СЛУШАТЬ** · алфавит с **Ё** · память в localStorage.
+Сфера — слушать и остановить. Алфавит с **Ё** по команде. Память в localStorage. Голос — спокойный русский.
 Live: https://dima202official.github.io/jarvis-os1/
