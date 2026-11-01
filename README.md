@@ -6,3 +6,5 @@ https://dima202official.github.io/jarvis-os1/
 Safari → Поделиться → На экран «Домой».
 
 Сфера = **СЛУШАТЬ** · алфавит с **Ё** · память в localStorage.
+
+Проверка записи Сайло: OK
