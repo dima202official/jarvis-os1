@@ -1,9 +1,10 @@
-const CACHE = "silo-pages-v3";
+const CACHE = "silo-pages-v5";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./agent/intent.js",
   "./manifest.webmanifest",
   "./assets/jarvis-sphere.gif",
   "./assets/icon-192.png",
@@ -23,6 +24,7 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
   e.respondWith(
     caches.match(e.request).then((hit) => hit || fetch(e.request).catch(() => caches.match("./")))
   );

@@ -12,9 +12,6 @@ const form = document.getElementById("form");
 const input = document.getElementById("input");
 const core = document.getElementById("core");
 const label = document.getElementById("label");
-const badge = document.getElementById("badge");
-const alphabetEl = document.getElementById("alphabet");
-const splash = document.getElementById("splash");
 
 function loadMemory() {
   try {
@@ -50,58 +47,72 @@ function seedProfile() {
 }
 
 function remember(text) {
+  const fact = (text || "").trim();
+  if (!fact) return "";
   const data = loadMemory();
-  data.entries.push({ id: Math.random().toString(36).slice(2, 10), text: text.trim(), at: Date.now() });
+  data.entries.push({ id: Math.random().toString(36).slice(2, 10), text: fact, at: Date.now() });
   saveMemory(data);
-  return `Записал в память: ${text.trim()}`;
+  return fact;
 }
 
 function memoryList() {
   const data = loadMemory();
-  if (!data.entries.length) return "Память пуста. /remember факт";
-  return "Память:\n" + data.entries.slice(-12).map((e) => `· ${e.text}`).join("\n");
+  if (!data.entries.length) return "";
+  return data.entries.slice(-12).map((e) => `· ${e.text}`).join("\n");
 }
 
-// \b в JS не работает с кириллицей, поэтому слова ищем сами.
-function hit(low, words) {
-  const padded = " " + low.replace(/[^a-zа-я0-9]+/g, " ") + " ";
-  return words.some((w) => (w.endsWith("*")
-    ? padded.includes(" " + w.slice(0, -1))
-    : padded.includes(" " + w + " ")));
+function reply(text, say) {
+  const long = !window.SiloIntent || window.SiloIntent.REPLY_LENGTH !== "short";
+  return { text, say: long ? text : (say || text) };
+}
+
+function mentions(low, pattern) {
+  return new RegExp(`(?:^|[^\\p{L}\\p{N}_])(?:${pattern})(?![\\p{L}\\p{N}_])`, "iu").test(low);
 }
 
 function brain(userText) {
   const t = (userText || "").trim();
   const low = t.toLowerCase().replace(/ё/g, "е");
-  if (!t) return "Я слушаю. Нажми сферу ещё раз.";
+  if (!t) return reply("Я слушаю. Нажмите сферу и произнесите поручение целиком.", "Слушаю.");
   if (t.startsWith("/remember ") || t.startsWith("/запомни ")) {
-    return remember(t.split(/\s+/).slice(1).join(" "));
+    const fact = remember(t.split(/\s+/).slice(1).join(" "));
+    if (!fact) return reply("Записывать пока нечего: после команды «запомни» нужна сама формулировка.", "Нечего записывать.");
+    return reply(`Я записал это в память браузера на этом устройстве. Формулировка такая: ${fact}. Запись останется после закрытия страницы.`, "Записал.");
   }
-  if (t === "/memory" || t === "/память" || hit(low, ["память", "что знаешь", "профиль"])) {
-    return memoryList();
+  if (t === "/memory" || t === "/память" || mentions(low, "память|что знаешь|профиль")) {
+    const list = memoryList();
+    if (!list) return reply("Память на этом устройстве пока пуста. Скажите «запомни» и дальше сам факт.", "Память пока пуста.");
+    return reply(`Вот что я помню на этом устройстве. Читаю последние записи по порядку.\n${list}`, "Показываю, что помню.");
   }
-  if (hit(low, ["привет*", "здравств*", "добрый", "доброе", "hello", "hi", "hallo"])) {
+  if (mentions(low, "привет|здравству\\p{L}*|добр\\p{L}*|hello|hi|hallo")) {
     const h = new Date().getHours();
     const g = h < 12 ? "Доброе утро" : h < 18 ? "Добрый день" : "Добрый вечер";
-    return `${g}, Дима. Сайло на связи — жми сферу.`;
+    return reply(`${g}, Дима. Сайло на связи. Я отвечаю развёрнуто и по-русски. Нажмите сферу и говорите поручение целиком, повторное нажатие остановит запись.`, `${g}, сэр.`);
   }
-  if (hit(low, ["алфавит*", "буквы", "alphabet"])) {
-    return `Полный русский алфавит (33 буквы, включая Ё): ${RU_ALPHABET}.`;
+  if (mentions(low, "алфавит|буквы|alphabet")) {
+    return reply(
+      `Русский алфавит состоит из тридцати трёх букв, и буква Ё в него входит. По порядку они такие: ${RU_ALPHABET}.`,
+      "Русский алфавит. Тридцать три буквы, включая ё."
+    );
   }
-  if (hit(low, ["кто ты", "как тебя зовут", "представься"])) {
-    return "Я Сайло — твой голосовой ассистент. Не Джарвис. Сфера → голос → ответ.";
+  if (mentions(low, "кто ты|как тебя зовут|представься")) {
+    return reply("Я Сайло, голосовой ассистент Димы. Отвечаю по-русски и теперь подробно. На этом экране держу память, время и алфавит. Если запущен локальный мост, читаю и записываю файлы, выполняю команды и ищу в сети.", "Я Сайло, сэр. Ваш ассистент.");
   }
-  if (hit(low, ["время", "который час", "сколько времени"])) {
-    return `Сейчас ${new Date().toLocaleString("ru-RU")}.`;
+  if (mentions(low, "время|который час|сколько времени")) {
+    const now = new Date().toLocaleString("ru-RU");
+    return reply(`Сейчас ${now}. Время беру с часов этого устройства, в его часовом поясе.`, `Сейчас ${now}.`);
   }
-  if (hit(low, ["помощь", "команды", "help"])) {
-    return "Сфера = СЛУШАТЬ. Команды: алфавит, время, /remember …, /memory. Память в этом Safari (localStorage).";
+  if (mentions(low, "помощь|команды|help")) {
+    return reply(
+      "Сфера слушает речь, повторное нажатие останавливает запись. Сразу доступны время, алфавит и память: скажите «запомни» или «память». Через локальный мост можно сказать «выполни» и команду, «прочитай файл», «создай файл» и «найди» запрос. Ответ я даю целиком, и на экране, и голосом.",
+      "Нажмите сферу, чтобы говорить. Могу назвать время и открыть память. Файлы, команды и поиск — через локальный мост."
+    );
   }
-  if (hit(low, ["позвонил*", "звонил*", "called"])) {
+  if (mentions(low, "позвонил\\p{L}*|звонил\\p{L}*|called")) {
     remember(`Дима сказал: ${t}`);
-    return `Запомнил: «${t}». Это останется после перезапуска Safari на этом iPhone.`;
+    return reply(`Я запомнил эту фразу и оставил её в памяти браузера: «${t}». Она сохранится на этом устройстве.`, "Запомнил.");
   }
-  return `Принял: «${t.slice(0, 140)}». Для вечной записи: /remember …`;
+  return reply(`Я принял фразу «${t.slice(0, 400)}». Если это поручение к файлам, терминалу или поиску, его выполнит локальный мост. Иначе могу запомнить её, если сказать «запомни».`, "Принято.");
 }
 
 function bubble(who, text) {
@@ -118,29 +129,86 @@ function bubble(who, text) {
 
 function setHot(on) {
   core.classList.toggle("hot", on);
-  label.textContent = on ? "СЛУШАЮ…" : "СЛУШАТЬ";
+  label.textContent = on ? "Слушаю" : "Слушать";
+}
+
+function russianVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  const ru = voices.filter((v) => /^ru([-_]|$)/i.test(v.lang || ""));
+  const male = ru.find((v) => /yuri|pavel|dmitri|filipp|male|муж/i.test(v.name));
+  return male || ru[0] || null;
 }
 
 function speak(text) {
   if (!window.speechSynthesis || !text) return;
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "ru-RU";
-  u.rate = 0.92;
-  const voices = window.speechSynthesis.getVoices();
-  const ru = voices.find((v) => (v.lang || "").toLowerCase().startsWith("ru"));
-  if (ru) u.voice = ru;
-  window.speechSynthesis.speak(u);
+  let spoken = false;
+  const utter = () => {
+    if (spoken) return;
+    spoken = true;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ru-RU";
+    u.rate = 0.86;
+    u.pitch = 0.9;
+    const voice = russianVoice();
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  };
+  if (window.speechSynthesis.getVoices().length) {
+    utter();
+    return;
+  }
+  window.speechSynthesis.addEventListener("voiceschanged", utter, { once: true });
+  window.speechSynthesis.getVoices();
+  setTimeout(utter, 400);
 }
 
-function send(text) {
+function say(text, spoken) {
+  bubble(WHO, text);
+  speak(spoken || text);
+}
+
+async function askAgent(text) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(new URL("agent", document.baseURI), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    });
+    const data = await response.json();
+    if (!response.ok || !data || !data.say) throw new Error("agent");
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function send(text) {
   const cleaned = (text || "").trim();
   if (!cleaned) return;
   bubble("ВЫ", cleaned);
   input.value = "";
-  const reply = brain(cleaned);
-  bubble(WHO, reply);
-  speak(reply);
+  const order = window.SiloIntent ? window.SiloIntent.classify(cleaned) : { kind: "local" };
+  if (order.kind === "local") {
+    const answer = brain(cleaned);
+    say(answer.text, answer.say);
+    return;
+  }
+  if (order.kind === "math") {
+    const value = window.SiloIntent.solveMath(order.expression);
+    if (value == null) say("Я не смог посчитать это выражение. Нужны только числа и знаки плюс, минус, умножение и деление.");
+    else say("Я посчитал выражение по порядку действий. Получается " + value + ".");
+    return;
+  }
+  try {
+    const data = await askAgent(cleaned);
+    say(data.text || data.say, data.say);
+  } catch {
+    say("Локальный мост не запущен, поэтому файлы, терминал и поиск сейчас недоступны. На этом компьютере запустите node agent/server.mjs и откройте страницу с адреса 127.0.0.1.");
+  }
 }
 
 form.addEventListener("submit", (e) => {
@@ -153,18 +221,18 @@ let currentRec = null;
 core.addEventListener("click", () => {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Rec) {
-    bubble(WHO, "Нет SpeechRecognition — пиши в поле. На iPhone нужен Safari.");
+    say("Распознавание речи в этом браузере недоступно. Напишите поручение в поле внизу, я прочитаю его так же, как голосовую команду.");
     input.focus();
     return;
   }
   if (recognizing) {
-    // Повторное нажатие на сферу останавливает прослушивание.
-    try { currentRec && currentRec.stop(); } catch {}
+    try { currentRec && currentRec.stop(); } catch { /* уже остановлено */ }
     return;
   }
   if (!window.isSecureContext) {
-    bubble(WHO, "Нужен HTTPS (GitHub Pages) для микрофона.");
+    say("Для микрофона нужна защищённая страница. На этом адресе запись голоса может не включиться, поручение можно написать.");
   }
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
   const r = new Rec();
   currentRec = r;
   r.lang = "ru-RU";
@@ -175,13 +243,13 @@ core.addEventListener("click", () => {
     recognizing = false;
     setHot(false);
     if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
-      bubble(WHO, "Разреши микрофон в Safari (аА → Настройки сайта).");
+      say("Микрофон закрыт настройками браузера. Разрешите его для этой страницы или напишите поручение в поле внизу.");
     } else if (ev.error === "no-speech") {
-      bubble(WHO, "Я ничего не услышал. Нажми сферу и скажи ещё раз.");
+      say("Я не расслышал фразу. Нажмите сферу ещё раз и повторите поручение, пожалуйста.");
     } else if (ev.error === "network") {
-      bubble(WHO, "Нет связи для распознавания речи. Проверь интернет или напиши в поле.");
+      say("Нет связи для распознавания речи. Проверьте интернет или напишите поручение в поле внизу.");
     } else if (ev.error !== "aborted") {
-      bubble(WHO, "Не получилось распознать речь. Попробуй ещё раз или напиши в поле.");
+      say("Речь распознать не удалось. Повторите поручение голосом или напишите его текстом.");
     }
   };
   r.onresult = (ev) => {
@@ -191,28 +259,9 @@ core.addEventListener("click", () => {
   try { r.start(); } catch { recognizing = false; setHot(false); }
 });
 
-function renderAlphabet() {
-  alphabetEl.replaceChildren();
-  RU_LETTERS.forEach((ch, i) => {
-    const span = document.createElement("span");
-    span.className = "ch" + (ch === "Ё" ? " yo" : "");
-    span.textContent = ch;
-    span.style.animationDelay = `${(i % 11) * 0.03}s`;
-    alphabetEl.appendChild(span);
-  });
-}
-
 seedProfile();
-renderAlphabet();
-setTimeout(() => splash.classList.add("gone"), 1500);
-
-if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
-  badge.textContent = "APP";
-}
-
-bubble(WHO, `Готово, Дима. Я Сайло. Сфера = СЛУШАТЬ. Алфавит: ${RU_ALPHABET}.`);
-speak("Сайло готов. Нажми сферу и говори.");
-label.textContent = "СЛУШАТЬ";
+say("Сайло на связи. Отвечаю развёрнуто и по-русски. Нажмите сферу и произнесите поручение целиком, повторное нажатие остановит запись.");
+label.textContent = "Слушать";
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {});
